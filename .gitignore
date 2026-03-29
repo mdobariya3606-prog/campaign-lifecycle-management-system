@@ -1,0 +1,12 @@
+# Maven
+target/
+*.class
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Spring Boot
+*.log
+application-local.properties
