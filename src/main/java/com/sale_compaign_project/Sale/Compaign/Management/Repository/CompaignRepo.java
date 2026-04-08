@@ -12,5 +12,5 @@ import java.util.Optional;
 @Repository
 public interface CompaignRepo extends JpaRepository<Compaign, Integer> {
     List<Compaign> findByStartDate(LocalDate startDate);
-    List<Compaign> findByEndDate(LocalDate endDate);
+    List<Compaign > findByEndDate(LocalDate endDate);
 }
