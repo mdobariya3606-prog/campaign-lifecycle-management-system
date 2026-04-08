@@ -76,20 +76,24 @@ Delete campaign.
 
 ## Pricing Logic
 
+Discount is applied on MRP (Maximum Retail Price).
+
 Example:
 
 MRP = 1000  
-Current Price = 900  
 Campaign Discount = 10%
 
 Final Price during campaign:
 
-900 - (10% of 900) = 810
+1000 - (10% of 1000) = 900
 
 After campaign ends:
-Price returns to 900.
+Price returns to original price stored before campaign.
 
----
+The system ensures:
+- discount calculation always uses MRP
+- original pricing is preserved
+- price history is stored for tracking changes
 
 ## Architecture
 
