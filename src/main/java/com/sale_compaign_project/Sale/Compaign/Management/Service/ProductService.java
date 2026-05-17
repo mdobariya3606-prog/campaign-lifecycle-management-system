@@ -22,7 +22,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -57,22 +61,46 @@ public class ProductService {
         compaign.setTitle(compaignDTO.getTitle());
         compaign.setStartDate(compaignDTO.getStartDate());
         compaign.setEndDate(compaignDTO.getEndDate());
+        compaign.setStatus(CompaignStatus.UPCOMING);
+        compaignRepo.save(compaign);
+
+        List<Integer> productIds = compaignDTO.getCampaignDiscount()
+                .stream()
+                .map(discountDTO -> discountDTO.getProductId()) // .map (DiscountDTO::getProductId());
+                .toList();
+
+        Map<Integer, Product> productMap = productRepo.findAllById(productIds)
+                .stream()
+                .collect(Collectors.toMap(Product::getProductId, product -> product));
+
+        List<CompaignDiscount> discountList = new ArrayList<>();
 
         for (DiscountDTO discountDTO : compaignDTO.getCampaignDiscount()) {
-            Product product = productRepo.findById(discountDTO.getProductId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product Not Found with: " + discountDTO.getProductId()));
+            Product product = productMap.get(discountDTO.getProductId());
+
+            if (product == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Product not found with: " + discountDTO.getProductId()
+                );
+            }
 
             CompaignDiscount compaignDiscount = new CompaignDiscount();
             compaignDiscount.setProduct(product);
             compaignDiscount.setCompaign(compaign);
             compaignDiscount.setDiscount(discountDTO.getDiscount());
 
-            compaign.getCompaignDiscounts().add(compaignDiscount);
-            compaignDiscountRepo.save(compaignDiscount);
+            discountList.add(compaignDiscount);
+            if (discountList.size() == 50) {
+                compaignDiscountRepo.saveAll(discountList);
+                discountList.clear();
+            }
         }
 
-        compaign.setStatus(CompaignStatus.UPCOMING);
-        compaignRepo.save(compaign);
+        if (!discountList.isEmpty()) {
+            compaignDiscountRepo.saveAll(discountList);
+        }
+
         return "Compaign Created Successfully";
     }
 
@@ -81,6 +109,7 @@ public class ProductService {
         for (CompaignDiscount compaignDiscount : compaign.getCompaignDiscounts()) {
             Product product = productRepo.findById(compaignDiscount.getProduct().getProductId())
                     .orElseThrow();
+
             double oldPrice = product.getCurrentPrice();
             double newPrice = oldPrice * (1 - compaignDiscount.getDiscount() / 100.0);
 
